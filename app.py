@@ -73,25 +73,29 @@ def main():
     st.title("เครื่องมือดึงข้อมูลตารางจาก PDF")
     st.markdown("โปรดอัปโหลดไฟล์ PDF ของคุณและใส่คำที่ต้องการค้นหาในตาราง")
     
-    # ส่วนอัปโหลดไฟล์
-    uploaded_file = st.file_uploader("อัปโหลดไฟล์ PDF", type="pdf")
+    # ส่วนอัปโหลดไฟล์ที่รองรับหลายไฟล์
+    uploaded_files = st.file_uploader("อัปโหลดไฟล์ PDF", type="pdf", accept_multiple_files=True)
     
     # ส่วนกรอกคำค้นหา
     search_keyword = st.text_input("ป้อนคำที่ต้องการค้นหาในตาราง", "Summary")
 
-    if uploaded_file and search_keyword:
+    if uploaded_files and search_keyword:
         if st.button("เริ่มประมวลผล"):
             st.spinner("กำลังประมวลผล...")
             
-            # เรียกใช้ฟังก์ชันหลัก
-            extracted_files = extract_tables_with_keyword(uploaded_file, search_keyword)
+            all_extracted_files = []
             
-            if extracted_files:
+            for file in uploaded_files:
+                st.info(f"--- กำลังประมวลผลไฟล์: {file.name} ---")
+                extracted_files = extract_tables_with_keyword(file, search_keyword)
+                all_extracted_files.extend(extracted_files)
+                
+            if all_extracted_files:
                 st.subheader("ผลลัพธ์")
-                st.success(f"🎉 ประมวลผลเสร็จสิ้น! พบตารางทั้งหมด {len(extracted_files)} ตาราง")
+                st.success(f"🎉 ประมวลผลเสร็จสิ้น! พบตารางทั้งหมด {len(all_extracted_files)} ตาราง")
                 
                 # สร้างและแสดงปุ่มดาวน์โหลดไฟล์ ZIP
-                zip_data = create_zip_archive(extracted_files)
+                zip_data = create_zip_archive(all_extracted_files)
                 st.download_button(
                     label="ดาวน์โหลดตารางทั้งหมด (ไฟล์ ZIP)",
                     data=zip_data,
@@ -100,11 +104,11 @@ def main():
                 )
                 
                 # ลบไฟล์ชั่วคราวหลังจากสร้าง ZIP แล้ว
-                for file_path in extracted_files:
+                for file_path in all_extracted_files:
                     os.remove(file_path)
                 
             else:
-                st.warning(f"⚠️ ไม่พบตารางที่มีคำว่า '{search_keyword}'")
+                st.warning(f"⚠️ ไม่พบตารางที่มีคำว่า '{search_keyword}' ในไฟล์ที่อัปโหลดทั้งหมด")
 
 if __name__ == "__main__":
     main()
